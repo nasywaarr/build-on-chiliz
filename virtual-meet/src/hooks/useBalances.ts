@@ -1,88 +1,50 @@
-import { NativeBalance } from "./../types/NativeBalance";
-import { useCallback, useEffect, useState } from "react";
-import Moralis from "moralis";
-import { TokenBalance } from "@/types/TokenBalance";
-import { useAppContext } from "@/contexts/AppContext";
-import { apiKey } from "@/util/addresses";
-import { current_chain } from "@/util/chain";
+import { useState } from "react";
+import { useAppContext } from "@/context/AppContext";
 
-export function useBalances() {
-    const [loading, setLoading] = useState(true);
-    const [message, setMessage] = useState("");
-    const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
-    const [nativeBalance, setNativeBalance] = useState<NativeBalance>();
-    const { address } = useAppContext();
+const useBalances = () => {
+  const { address } = useAppContext();
+  const [tokenBalances, setTokenBalances] = useState<any[]>([]);
+  const [nativeBalance, setNativeBalance] = useState<any>(null);
 
-    const fetchTokenBalance = useCallback(async () => {
-        try {
-            if (!address) return;
-            if (!Moralis.Core.isStarted) {
-                await Moralis.start({ apiKey });
-            }
+  const apiKey = process.env.NEXT_PUBLIC_MORALIS_API_KEY;
+  const current_chain = "0x15b32";
 
-            const token_balances = await fetch(
-                `https://deep-index.moralis.io/api/v2.2/0x6648560A1a5800BE0843D987297bDe5D4b240Ab1/erc20?` +
-                    new URLSearchParams({
-                        chain: current_chain,
-                    }),
-                {
-                    method: "get",
-                    headers: {
-                        accept: "application/json",
-                        "X-API-Key": `${apiKey}`,
-                    },
-                }
-            );
-
-            const tokens = await token_balances.json();
-
-            setTokenBalances(tokens);
-
-            // const token_balances =
-            //     await Moralis.EvmApi.token.getWalletTokenBalances({
-            //         address,
-            //         chain: current_chain,
-            //     });
-            //setTokenBalances(token_balances.toJSON());
-
-            // const native_balance =
-            //     await Moralis.EvmApi.balance.getNativeBalance({
-            //         address,
-            //         chain: current_chain,
-            //     });
-            // setNativeBalance(native_balance.toJSON());
-
-            const native_balance = await fetch(
-                `https://deep-index.moralis.io/api/v2.2/0x057Ec652A4F150f7FF94f089A38008f49a0DF88e/balance?` +
-                    new URLSearchParams({
-                        chain: current_chain,
-                    }),
-                {
-                    method: "get",
-                    headers: {
-                        accept: "application/json",
-                        "X-API-Key": `${apiKey}`,
-                    },
-                }
-            );
-            const native = await native_balance.json();
-            setNativeBalance(native);
-        } catch (error) {
-            console.log("Error fetching token balances: ", error);
-            setMessage("Error fetching token balances");
-        } finally {
-            setLoading(false);
+  const fetchBalances = async () => {
+    try {
+      const token_balances = await fetch(
+        `https://deep-index.moralis.io/api/v2.2/${address}/erc20?` +
+          new URLSearchParams({ chain: current_chain }),
+        {
+          method: "get",
+          headers: {
+            accept: "application/json",
+            "X-API-Key": `${apiKey}`,
+          },
         }
-    }, []);
+      );
+      const tokens = await token_balances.json();
+      setTokenBalances(tokens);
 
-    useEffect(() => {
-        fetchTokenBalance();
-    }, [fetchTokenBalance]);
+      const native_balance = await fetch(
+        `https://deep-index.moralis.io/api/v2.2/${address}/balance?` +
+          new URLSearchParams({ chain: current_chain }),
+        {
+          method: "get",
+          headers: {
+            accept: "application/json",
+            "X-API-Key": `${apiKey}`,
+          },
+        }
+      );
+      const native = await native_balance.json();
+      setNativeBalance(native);
 
-    return {
-        loading,
-        message,
-        tokenBalances,
-        nativeBalance,
-    };
-}
+    } catch (error) {
+      console.error("Error fetching balances:", error);
+    }
+  };
+
+  return { tokenBalances, nativeBalance, fetchBalances };
+};
+
+export default useBalances;

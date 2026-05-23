@@ -1,68 +1,106 @@
-import CardLink from "@/components/CardLink";
-import { useAppContext } from "@/contexts/AppContext";
-import { useAuth } from "@/hooks/useAuth";
-import styles from "@/styles/Home.module.css";
+import useAuthentication from "@/hooks/useAuthentication";
 
-const ConnectWalletBtn = ({ onClick }: { onClick: () => void }) => {
-    return (
-        <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            onClick={onClick}
-        >
-            Connect Wallet
-        </button>
-    );
-};
+export default function Home() {
+  const { address, isConnected, handleConnect, handleDisconnect } = useAuthentication();
 
-const OptionsGrid = () => {
-    return (
-        <div className={styles.grid}>
-            <CardLink
-                href="/balances"
-                title="Token Balance"
-                description="See the tokens you own in Chilliz Spicy Testnet"
-            />
-            <CardLink
-                href="/meet"
-                title="Meet"
-                description="Discover Virtual Meetup for token holders"
-            />
-            <CardLink
-                href="/fantokens"
-                title="FanTokens"
-                description="See every fan token"
-            />
-        </div>
-    );
-};
-function Hub() {
-    const { isConnected } = useAppContext();
-    const { handleConnect } = useAuth();
-
-    return (
-        <main className={styles.main}>
-            <div className={styles.center}>
-                <div>
-                    <h1 className="text-6xl font-semibold my-4 text-center">
-                        Welcome to the Chilliz Hub
-                    </h1>
-
-                    <h2 className="text-4xl text-center">
-                        <div className="my-8">
-                            Only Fan Token Holders can vote on
-                        </div>
-                        <div className="mt-8">
-                            exclusive events and join virtual meetups
-                        </div>
-                    </h2>
-                </div>
-            </div>
-            {isConnected ? (
-                <OptionsGrid />
-            ) : (
-                <ConnectWalletBtn onClick={handleConnect} />
-            )}
-        </main>
-    );
+  return (
+    <div>
+      {isConnected ? (
+        <>
+          <p>Connected: {address}</p>
+          <button onClick={handleDisconnect}>Disconnect</button>
+        </>
+      ) : (
+        <button onClick={handleConnect}>Connect Wallet</button>
+      )}
+    </div>
+  );
 }
-export default Hub;
+
+import useBalances from "@/hooks/useBalances";
+
+export default function Home() {
+  const { tokenBalances, nativeBalance, fetchBalances } = useBalances();
+
+  return (
+    <div>
+      <button onClick={fetchBalances}>Fetch Balances</button>
+      <p>Native Balance: {nativeBalance?.balance}</p>
+      <ul>
+        {tokenBalances.map((token: any, i: number) => (
+          <li key={i}>{token.name}: {token.balance}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+import useTokenMetadata from "@/hooks/useTokenMetadata";
+
+export default function TokenInfo() {
+  const { tokens, fetchTokenMetadata } = useTokenMetadata();
+
+  const exampleAddresses = [
+    "0xTokenAddress1",
+    "0xTokenAddress2",
+  ];
+
+  return (
+    <div>
+      <button onClick={() => fetchTokenMetadata(exampleAddresses)}>
+        Fetch Token Metadata
+      </button>
+      <ul>
+        {tokens.map((token: any, i: number) => (
+          <li key={i}>
+            {token.name} ({token.symbol}) - Decimals: {token.decimals}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+import { useRouter } from "next/router";
+import useAuthentication from "@/hooks/useAuthentication";
+
+export default function Home() {
+  const { isConnected, handleConnect } = useAuthentication();
+  const router = useRouter();
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+      <h1 className="text-3xl font-bold">Virtual Meet</h1>
+
+      {!isConnected ? (
+        <button
+          onClick={handleConnect}
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg"
+        >
+          Connect Wallet
+        </button>
+      ) : (
+        <div className="flex flex-col gap-3 w-64">
+          <button
+            onClick={() => router.push("/balances")}
+            className="bg-green-600 text-white px-6 py-2 rounded-lg"
+          >
+            Balances
+          </button>
+          <button
+            onClick={() => router.push("/meet")}
+            className="bg-purple-600 text-white px-6 py-2 rounded-lg"
+          >
+            Mint (Meet)
+          </button>
+          <button
+            onClick={() => router.push("/fun-tokens")}
+            className="bg-yellow-600 text-white px-6 py-2 rounded-lg"
+          >
+            Fun Tokens
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

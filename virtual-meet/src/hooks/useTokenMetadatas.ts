@@ -1,60 +1,38 @@
-import { useCallback, useEffect, useState } from "react";
-import Moralis from "moralis";
-import { TokenData } from "@/types/TokenData";
-import { apiKey, token_address_list } from "@/util/addresses";
-import { current_chain } from "@/util/chain";
+import { useState } from "react";
 
-export function useTokenMetadata() {
-    const [message, setMessage] = useState("");
-    const [loading, setLoading] = useState(true);
-    const [tokens, setTokens] = useState<TokenData[]>([]);
+const useTokenMetadata = () => {
+  const [tokens, setTokens] = useState<any[]>([]);
 
-    const fetchTokenMetadata = useCallback(async () => {
-        try {
-            if (!Moralis.Core.isStarted) {
-                await Moralis.start({ apiKey });
-            }
+  const apiKey = process.env.NEXT_PUBLIC_MORALIS_API_KEY;
+  const current_chain = "0x15b32"; // CHZ testnet chain ID
 
-            // const token_metadatas = await Moralis.EvmApi.token.getTokenMetadata(
-            //     {
-            //         addresses: token_address_list,
-            //         chain: "chiliz",
-            //     }
-            // );
-            // setTokens(token_metadatas.toJSON());
+  const fetchTokenMetadata = async (token_address_list: string[]) => {
+    try {
+      const baseUrl = `https://deep-index.moralis.io/api/v2.2/erc20/metadata?chain=${current_chain}`;
 
-            const baseUrl = `https://deep-index.moralis.io/api/v2.2/erc20/metadata?chain=${current_chain}`;
+      let fullUrl = baseUrl;
+      token_address_list.forEach((address, index) => {
+        const addressParam = `&addresses%5B${index}%5D=${address}`;
+        fullUrl += addressParam;
+      });
 
-            let fullUrl = baseUrl;
-            token_address_list.forEach((address, index) => {
-                const addressParam = `&addresses%5B${index}%5D=${address}`;
-                fullUrl += addressParam;
-            });
+      const response = await fetch(fullUrl, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "X-API-Key": `${apiKey}`,
+        },
+      });
 
-            const response = await fetch(fullUrl, {
-                method: "GET",
-                headers: {
-                    Accept: "application/json",
-                    "X-API-Key": apiKey,
-                },
-            });
-            const data = await response.json();
-            setTokens(data);
-        } catch (e) {
-            setMessage("Error fetching token metadata");
-            console.log("Error fetching token metadata", e);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+      const data = await response.json();
+      setTokens(data);
 
-    useEffect(() => {
-        fetchTokenMetadata();
-    }, [fetchTokenMetadata]);
+    } catch (error) {
+      console.error("Error fetching token metadata:", error);
+    }
+  };
 
-    return {
-        message,
-        loading,
-        tokens,
-    };
-}
+  return { tokens, fetchTokenMetadata };
+};
+
+export default useTokenMetadata;

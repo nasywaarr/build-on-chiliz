@@ -1,23 +1,26 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
-import { WagmiConfig, createConfig, mainnet } from "wagmi";
-import { createPublicClient, http } from "viem";
-import { AppContextProvider } from "@/contexts/AppContext";
+import { AppContextProvider } from "@/context/AppContext";
+import { WagmiConfig, createClient, configureChains, mainnet } from "wagmi";
+import { publicProvider } from "wagmi/providers/public";
 
-const config = createConfig({
-    autoConnect: true,
-    publicClient: createPublicClient({
-        chain: mainnet,
-        transport: http(),
-    }),
+const { provider, webSocketProvider } = configureChains(
+  [mainnet],
+  [publicProvider()]
+);
+
+const client = createClient({
+  autoConnect: true,
+  provider,
+  webSocketProvider,
 });
 
 export default function App({ Component, pageProps }: AppProps) {
-    return (
-        <WagmiConfig config={config}>
-            <AppContextProvider>
-                <Component {...pageProps} />
-            </AppContextProvider>
-        </WagmiConfig>
-    );
+  return (
+    <WagmiConfig client={client}>
+      <AppContextProvider>
+        <Component {...pageProps} />
+      </AppContextProvider>
+    </WagmiConfig>
+  );
 }

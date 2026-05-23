@@ -1,40 +1,28 @@
-import { FC, ReactNode, createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 
-type AppContextType = {
-    address: string;
-    isConnected: boolean;
-    setAddress: (newAddress: string) => void;
-    setIsConnected: (newIsConnected: boolean) => void;
+interface AppContextType {
+  address: string;
+  setAddress: (address: string) => void;
+  isConnected: boolean;
+  setIsConnected: (isConnected: boolean) => void;
+}
+
+const AppContext = createContext<AppContextType>({
+  address: "",
+  setAddress: () => {},
+  isConnected: false,
+  setIsConnected: () => {},
+});
+
+export const AppContextProvider = ({ children }: { children: ReactNode }) => {
+  const [address, setAddress] = useState("");
+  const [isConnected, setIsConnected] = useState(false);
+
+  return (
+    <AppContext.Provider value={{ address, setAddress, isConnected, setIsConnected }}>
+      {children}
+    </AppContext.Provider>
+  );
 };
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-export const useAppContext = () => {
-    const context = useContext(AppContext);
-    if (context === undefined) {
-        throw new Error(
-            "useAppContext must be used within an AppContextProvider"
-        );
-    }
-    return context;
-};
-
-export const AppContextProvider: FC<{ children: ReactNode }> = ({
-    children,
-}) => {
-    const [address, setAddress] = useState<string>("");
-    const [isConnected, setIsConnected] = useState<boolean>(false);
-
-    const contextValue = {
-        address,
-        isConnected,
-        setAddress,
-        setIsConnected,
-    };
-
-    return (
-        <AppContext.Provider value={contextValue}>
-            {children}
-        </AppContext.Provider>
-    );
-};
+export const useAppContext = () => useContext(AppContext);

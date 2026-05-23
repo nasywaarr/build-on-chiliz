@@ -1,49 +1,55 @@
-import BackToHub from "@/components/BackToHub";
-import { useBalances } from "@/hooks/useBalances";
-import React from "react";
-import styles from "@/styles/Home.module.css";
-import Countdown from "react-countdown";
-import { formatBalance } from "@/util/formatBalance";
+import { useEffect, useState } from "react";
+import useBalances from "@/hooks/useBalances";
 
-function MeetingPage() {
-    const { message, nativeBalance } = useBalances();
+// The fan token address we require
+const REQUIRED_FAN_TOKEN = "0xF9C0F80a6c67b1B39bdDF00ecD57f2533ef5b688";
 
-    const native =
-        nativeBalance && Number(nativeBalance.balance) > 0
-            ? formatBalance(nativeBalance.balance)
-            : 0;
-    const isEligible = Number(native) > 0;
-    const countdownDate = new Date("2023-12-31T23:59:59");
+const formatBalance = (balance: string, decimals: number = 18) => {
+  return Number(balance) / Math.pow(10, decimals);
+};
 
-    if (message) return <p>{message}</p>;
-    return (
-        <main className={styles.main}>
-            <div className={styles.center}>
-                <div>
-                    <h1 className="my-8 text-center text-3xl font-bold  ">
-                        MEETING WILL START SOON!
-                    </h1>
+export default function Meet() {
+  const { tokenBalances, nativeBalance, fetchBalances } = useBalances();
+  const [eligible, setEligible] = useState(false);
 
-                    <Countdown
-                        date={countdownDate}
-                        className={styles.countdown}
-                    />
+  useEffect(() => {
+    fetchBalances();
+  }, []);
 
-                    <h2 className="my-8 text-center text-xl font-bold">
-                        <div className="my-4">
-                            only native token holders will be eligible to join
-                        </div>
-                        <div className="my-4">{`Your native balance is ${native}`}</div>
-                        <div className="my-4 ">
-                            {`YOU ARE ${isEligible ? "" : "NOT"} ELIGIBLE`}
-                        </div>
-                    </h2>
+  useEffect(() => {
+    if (!nativeBalance || !tokenBalances) return;
 
-                    <BackToHub />
-                </div>
-            </div>
-        </main>
+    // Check native balance
+    const hasNative = formatBalance(nativeBalance.balance ?? "0") > 1;
+
+    // Check if user holds the required fan token
+    const fanToken = tokenBalances.find(
+      (token: any) =>
+        token.token_address?.toLowerCase() === REQUIRED_FAN_TOKEN.toLowerCase()
     );
-}
+    const hasFanToken =
+      fanToken && formatBalance(fanToken.balance) > 1;
 
-export default MeetingPage;
+    setEligible(hasNative && !!hasFanToken);
+  }, [nativeBalance, tokenBalances]);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <h1 className="text-2xl font-bold mb-4">Meet</h1>
+
+      {!nativeBalance ? (
+        <p>Checking eligibility...</p>
+      ) : eligible ? (
+        <div className="text-center">
+          <p className="text-green-600 font-bold">Access Granted!</p>
+          <p className="text-4xl mt-4">⏳ Coming Soon...</p>
+        </div>
+      ) : (
+        <div className="text-center text-red-600">
+          <p className="font-bold">Access Denied.</p>
+          <p className="text-sm mt-2">You need CHZ and the required fan token to enter.</p>
+        </div>
+      )}
+    </div>
+  );
+}
